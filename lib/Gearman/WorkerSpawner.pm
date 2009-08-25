@@ -36,7 +36,7 @@ Gearman::WorkerSpawner
            worker_args  => {
                foo => 3,
                bar => 1.2,
-           }, # passed as second arg to MyGearmanWorker->new()
+           }, # passed as second arg to MyWorkers::BlahWorker->new()
        );
        $svc->register_hook(
            MyPlugin => proxy_read_request => sub {
