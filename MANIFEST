@@ -11,12 +11,10 @@ inc/Module/Install/Metadata.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
 lib/Gearman/WorkerSpawner.pm
-Makefile
 Makefile.PL
 MANIFEST
 MANIFEST.SKIP
 META.yml			Module meta-data (added by MakeMaker)
-pm_to_blib
 README
 t/Gearman-WorkerSpawner.t
 t/lib/TestWorker.pm
