@@ -1,0 +1,3 @@
+Revision history for Perl extension Gearman::WorkerSpawner
+1.00  Tue Aug 25 16:46:14 PDT 2009
+        - Cpan-ified from svn trunk
