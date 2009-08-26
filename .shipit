@@ -1,5 +1,5 @@
 # auto-generated shipit config file.
-steps = FindVersion, ChangeVersion, ChangeRPMVersion, CheckChangeLog, DistTest, Commit, Tag, MakeDist, UploadCPAN
+steps = FindVersion, ChangeVersion, CheckChangeLog, DistTest, Commit, Tag, MakeDist, UploadCPAN
 
 svn.tagpattern = http://code.sixapart.com/svn/Gearman-WorkerSpawner/tags/Gearman-WorkerSpawner-%v
 
