@@ -2,7 +2,8 @@ package Gearman::WorkerSpawner;
 
 =head1 NAME
 
-Gearman::WorkerSpawner
+Gearman::WorkerSpawner - Subprocess manager for Gearman workers in a
+Danga::Socket environment
 
 =head1 SYNOPSIS
 
@@ -56,7 +57,7 @@ be created for the lifetime of the spawner.
 use strict;
 use warnings;
 
-our $VERSION = '1.00';
+our $VERSION = '1.01';
 
 use Carp qw/ croak /;
 use Danga::Socket ();
@@ -88,8 +89,6 @@ advantage of using this over running gearmand externally is that the Gearman
 server process will halt itself in the event of the calling process' demise.
 Defaults to I<external>.
 
-=back
-
 =item * check_period
 
 Time in seconds between live-worker checks. Any zombie children are reaped with
@@ -105,16 +104,16 @@ C<$^X>.
 
 WorkerSpawner periodically reaps any dead children of its running process. If
 there are non-WorkerSpawner child processes in your program, you won't know
-when they die. To be notified of that, you can provide a subref as the
+when they die. To be notified of such events, you can provide a subref as the
 C<reaper> parameter which will be called with the PID of any reaped children
 which don't belong to WorkerSpawner.
-
-=back
 
 Along that line, only a single WorkerSpawner may be created in a process
 (otherwise multiple spawners would race to reap each others' children, making
 worker accounting impossible). As such, new() will croak if called more than
 once.
+
+=back
 
 =cut
 
@@ -202,6 +201,8 @@ respawned. Defaults to 1.
 
 An opaque data structure to pass to the child process. Must be serializable via
 Storable.
+
+=back
 
 =cut
 
