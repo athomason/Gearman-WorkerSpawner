@@ -1,3 +1,5 @@
 Revision history for Perl extension Gearman::WorkerSpawner
+1.01  Thu Aug 27 01:50:13 PDT 2009
+        - POD fixes
 1.00  Tue Aug 25 16:46:14 PDT 2009
         - Cpan-ified from svn trunk
