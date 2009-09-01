@@ -175,7 +175,7 @@ sub new {
 
 =item $spawner->add_worker(%options)
 
-Add a new worker set to the manager. A new superviser process will be created
+Add a new worker set to the manager. A new supervisor process will be created
 to manage it if one does not already exist for the worker class. Can take the
 following parameters:
 
