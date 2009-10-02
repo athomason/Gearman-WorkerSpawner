@@ -57,7 +57,7 @@ be created for the lifetime of the spawner.
 use strict;
 use warnings;
 
-our $VERSION = '1.01';
+our $VERSION = '1.02';
 
 use Carp qw/ croak /;
 use Danga::Socket ();
@@ -114,6 +114,11 @@ worker accounting impossible). As such, new() will croak if called more than
 once.
 
 =back
+
+=item Gearman::WorkerSpawner->gearmand_pid()
+
+Returns the PID of the gearmand which was started up if I<external> was given
+as the C<gearmand> parameter to C<new>, or undef otherwise.
 
 =cut
 
@@ -389,6 +394,7 @@ requested, its hostspec is returned.
 
 # singleton server object
 my $gearman_server;
+my $gearmand_pid;
 sub gearman_server {
     unless ($gearman_server) {
         if ($gearmand_spec eq 'external') {
@@ -414,6 +420,7 @@ sub gearman_server {
             die "fork failed: $!" unless defined $pid;
             if ($pid) {
                 $gearman_server = ["127.0.0.1:$gearmand_port"];
+                $gearmand_pid = $pid;
                 # don't return until the server is contactable
                 while (1) {
                     last if IO::Socket::INET->new(
@@ -441,6 +448,10 @@ sub gearman_server {
     else {
         return $gearman_server;
     }
+}
+
+sub gearmand_pid {
+    return $gearmand_pid || undef;
 }
 
 =back
@@ -657,7 +668,9 @@ sub _reap {
 sub _cleanup {
     my $self = shift;
     return if $quitting++;
-    kill 'INT', keys %{ $self->{kids} };
+    my @kids = keys %{ $self->{kids} };
+    push @kids, $gearmand_pid if $gearmand_pid;
+    kill 'INT', @kids;
     exit 0;
 }
 

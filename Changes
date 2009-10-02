@@ -1,4 +1,6 @@
 Revision history for Perl extension Gearman::WorkerSpawner
+1.02  Thu Oct  1 17:30:29 PDT 2009
+        - Add gearmand_pid method
 1.01  Thu Aug 27 01:50:13 PDT 2009
         - POD fixes
 1.00  Tue Aug 25 16:46:14 PDT 2009
