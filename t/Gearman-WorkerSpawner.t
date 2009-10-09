@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 5;
+use Test::More tests => 8;
 use Storable qw/ nfreeze thaw /;
 
 use FindBin '$Bin';
@@ -18,6 +18,8 @@ $spawner->add_worker(
    num_workers  => 1,
    worker_args  => \%args,
 );
+$spawner->wait_until_all_ready;
+ok('worker ready');
 
 $spawner->add_task(Gearman::Task->new(testfunc => \nfreeze({value => 3}), {
     on_complete => sub {
@@ -25,10 +27,17 @@ $spawner->add_task(Gearman::Task->new(testfunc => \nfreeze({value => 3}), {
         is(ref $ref, 'SCALAR', 'got ref back');
         my $result = eval { thaw $$ref };
         ok(!$@, 'thawed result');
-        is($result->[0], 4, 'function computed value'); 
-        is_deeply($result->[1], \%args, 'worker args were passed and stored'); 
-        exit;
+        is($result->[0], 4, 'function computed value');
+        is_deeply($result->[1], \%args, 'worker args were passed and stored');
     },
 }));
+
+# test auto-creation of Gearman::Task
+$spawner->add_task(testfunc => \nfreeze({value => 3}), {
+    on_complete => sub {
+        pass();
+        Danga::Socket->AddTimer(1, sub { ok('exiting'); exit } );
+    },
+});
 
 Danga::Socket->EventLoop;

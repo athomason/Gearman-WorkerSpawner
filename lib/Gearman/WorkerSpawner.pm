@@ -57,7 +57,7 @@ be created for the lifetime of the spawner.
 use strict;
 use warnings;
 
-our $VERSION = '1.02';
+our $VERSION = 'y';
 
 use Carp qw/ croak /;
 use Danga::Socket ();
@@ -350,15 +350,27 @@ sub wait_until_all_ready {
 
 =item $spawner->add_task($task)
 
-Asynchronously submits a L<Gearman::Task> object to a configured Gearman server.
+=item $spawner->add_task($funcname, $arg, \%options)
+
+Asynchronously submits a task to a configured Gearman server. May either
+take a L<Gearman::Task> object, or the 3 arguments that the Gearman::Task
+constructor takes.
 
 =cut
 
 sub add_task {
     my Gearman::WorkerSpawner $self = shift;
-    my Gearman::Task $task = shift;
-    return unless $task;
-    _gearman_client()->add_task($task);
+    my $task = shift;
+
+    croak "task object or Gearman::Task->new parameters required)"
+        unless $task;
+
+    if (ref $task && $task->isa('Gearman::Task')) {
+        _gearman_client()->add_task($task);
+    }
+    else {
+        _gearman_client()->add_task(Gearman::Task->new($task, @_));
+    }
 }
 
 =item $spawner->stop_workers([$sig])
