@@ -26,4 +26,4 @@ requires:
   Storable: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: 1.03
+version: 2.00
