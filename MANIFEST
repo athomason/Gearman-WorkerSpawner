@@ -17,9 +17,9 @@ MANIFEST
 MANIFEST.SKIP
 META.yml			Module meta-data (added by MakeMaker)
 README
-00-create.t
-01-plain-worker.t
-02-method-worker.t
+t/00-create.t
+t/01-plain-worker.t
+t/02-method-worker.t
 t/lib/MethodWorker.pm
 t/lib/TestWorker.pm
 Gearman-WorkerSpawner.spec
