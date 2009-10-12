@@ -9,7 +9,7 @@ Danga::Socket environment
 
     # write client code in some Danga::Socket environment, e.g. Perlbal:
 
-    my $worker_manager = Gearman::WorkerSpawner->new(gearmand => 'external');
+    my $worker_manager = Gearman::WorkerSpawner->new;
 
     # add one or more workers
     $worker_manager->add_worker(
@@ -80,11 +80,11 @@ Constructor, can take the following parameters:
 =item * gearmand
 
 Specifies the location of the Gearman server to use. This may either be a comma
-separated list of host:port specs, or I<external>, which specifies that the
+separated list of host:port specs, or I<auto>, which specifies that the
 WorkerSpawner should spawn a separate process to contain a Gearman server. The
 advantage of using this over running gearmand externally is that the Gearman
-server process will halt itself in the event of the calling process' demise.
-Defaults to I<external>.
+server process will halt itself in the event of the calling process' demise;
+the disadvantage is that you give up gearmand redundancy. Defaults to I<auto>.
 
 =item * check_period
 
@@ -110,11 +110,17 @@ Along that line, only a single WorkerSpawner may be created in a process
 worker accounting impossible). As such, new() will croak if called more than
 once.
 
+=item * sigchld
+
+If true, a SIGCHLD handler is installed which immediately schedules a child
+check, rather than waiting upwards of C<check_period> seconds. Defaults to
+true.
+
 =back
 
 =item Gearman::WorkerSpawner->gearmand_pid()
 
-Returns the PID of the gearmand which was started up if I<external> was given
+Returns the PID of the gearmand which was started up if I<auto> was given
 as the C<gearmand> parameter to C<new>, or undef otherwise.
 
 =cut
@@ -135,7 +141,8 @@ sub new {
         check_period    => 1,
         perl            => $^X,
         quitting        => 0,
-        gearmand        => 'external',
+        gearmand        => 'auto',
+        sigchld         => 1,
         @_
     );
 
@@ -163,6 +170,11 @@ sub new {
             }
         }
     }, $self->{check_period});
+
+    # restart children quickly
+    $SIG{CHLD} = sub {
+        Danga::Socket->AddTimer(0, sub { $self->_reap });
+    } if $params{sigchld};
 
     $started = 1;
 
@@ -443,7 +455,7 @@ sub DESTROY {
 
 =item $spawner->gearman_servers()
 
-Returns an arrayref of server host:port specs. If an 'external' server was
+Returns an arrayref of server host:port specs. If an 'auto' server was
 requested, its hostspec is included.
 
 =cut
@@ -454,7 +466,7 @@ my $gearmand_pid;
 sub gearman_servers {
     unless ($gearman_servers) {
         use Carp; Carp::cluck("bad server list") unless defined $gearmand_spec;
-        if ($gearmand_spec eq 'external') {
+        if ($gearmand_spec eq 'auto' || $gearmand_spec eq 'external') {
             # ask OS for open listening port
             my $gearmand_port;
             eval {

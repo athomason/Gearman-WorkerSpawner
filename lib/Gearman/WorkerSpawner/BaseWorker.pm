@@ -9,7 +9,7 @@ creating a Gearman worker for use with Gearman::WorkerSpawner
     # special 'max_jobs' option instructs the worker to exit cleanly after
     # performing that many jobs.
 
-    my $worker_manager = Gearman::WorkerSpawner->new(gearmand => 'external');
+    my $worker_manager = Gearman::WorkerSpawner->new;
     $worker_manager->add_worker(
         class  => 'AdditionWorker',
         config => {
