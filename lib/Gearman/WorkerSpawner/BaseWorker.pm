@@ -1,6 +1,7 @@
 =head1 NAME
 
-Gearman::WorkerSpawner::BaseWorker - Base class to simplifyimplifies the process of creating a Gearman worker for use with Gearman::WorkerSpawner
+Gearman::WorkerSpawner::BaseWorker - Base class to simplify the process of
+creating a Gearman worker for use with Gearman::WorkerSpawner
 
 =head1 SYNOPSIS
 
