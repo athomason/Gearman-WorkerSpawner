@@ -22,3 +22,4 @@ README
 02-method-worker.t
 t/lib/MethodWorker.pm
 t/lib/TestWorker.pm
+Gearman-WorkerSpawner.spec
