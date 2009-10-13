@@ -38,7 +38,7 @@ creating a Gearman worker for use with Gearman::WorkerSpawner
     # contain populated 'config' and 'slot' fields
     sub new {
         my $class = shift;
-        my $self = bless Gearman::WorkerSpawner::BaseWorker->new(@_), $class;
+        my MethodWorker $self = bless $self->SUPER::new(@_), $class;
         print "I am worker $self->{slot}\n";
         $self->register_method(adder => \&add);
         return $self;

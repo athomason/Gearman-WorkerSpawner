@@ -1,4 +1,8 @@
 Revision history for Perl extension Gearman::WorkerSpawner
+2.01  Mon Oct 12 17:36:49 PDT 2009
+        - Rename "external" gearmand parameter to more sensible "auto". Install a SIGCHLD handler for quick reaping.
+2.00  Sun Oct 11 20:30:35 PDT 2009
+        - Rejigger some internals and add Gearman::WorkerSpawner::BaseWorker to alleviate drudgery of writing a worker.
 1.03  Fri Oct  9 14:06:21 PDT 2009
         - Allow add_taks to take the raw parameters of Gearman::Task->new as a
           convenience
