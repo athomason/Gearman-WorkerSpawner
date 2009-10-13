@@ -394,6 +394,9 @@ on_fail handler will be called if marshalling fails for some reason.
 If the second form is used, an empty %options is created and $callback is used
 as the on_complete handler.
 
+If the return value of the method is a scalar, a scalar reference will be
+returned to the caller.
+
 =cut
 
 sub run_method {
