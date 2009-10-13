@@ -425,8 +425,8 @@ sub run_method {
     }
 
     # serialize parameter
-    $arg = \$arg unless ref $arg;
-    _gearman_client()->add_task(Gearman::Task->new($methodname, \nfreeze($arg), $options));
+    my $arg_ref = ref $arg ? $arg : \$arg;
+    _gearman_client()->add_task(Gearman::Task->new($methodname, \nfreeze($arg_ref), $options));
 }
 
 =item $spawner->stop_workers([$sig])
