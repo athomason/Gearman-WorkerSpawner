@@ -54,7 +54,7 @@ be created for the lifetime of the spawner.
 use strict;
 use warnings;
 
-our $VERSION = '2.01';
+our $VERSION = '2.02';
 
 use Carp qw/ croak /;
 use Danga::Socket ();
@@ -500,6 +500,7 @@ sub gearman_servers {
             }
             else {
                 $0 = 'gearmand-WorkerSpawner';
+                Danga::Socket->Reset();
                 my $server = Gearman::Server->new;
                 $server->create_listening_sock($gearmand_port);
                 _run_periodically(sub { exit if getppid != $parent_pid }, 5);

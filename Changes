@@ -1,4 +1,6 @@
 Revision history for Perl extension Gearman::WorkerSpawner
+2.02  Mon Oct 12 18:50:18 PDT 2009
+        - Reset Danga::Socket in auto server to avoid epoll cross-contamination
 2.01  Mon Oct 12 17:36:49 PDT 2009
         - Rename "external" gearmand parameter to more sensible "auto". Install a SIGCHLD handler for quick reaping.
 2.00  Sun Oct 11 20:30:35 PDT 2009
