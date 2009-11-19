@@ -54,7 +54,7 @@ be created for the lifetime of the spawner.
 use strict;
 use warnings;
 
-our $VERSION = '2.02';
+our $VERSION = '2.03';
 
 use Carp qw/ croak /;
 use Danga::Socket ();
@@ -204,6 +204,12 @@ different calls.
 (Optional) The path to the file containing the definition of 'class'; only
 necessary if the module can't be use'd for some reason.
 
+=item * caller_source
+
+(Optional) If true, assume that the source for 'class' is the calling module or
+script. This will generally fail if the working directory has changed since
+program startup. This overrides I<source> if both are provided.
+
 =item * num_workers
 
 The number of worker children to spawn. If any child processes die they will be
@@ -298,6 +304,8 @@ sub add_worker {
                     }
                     keys %$self
                 }, __PACKAGE__;
+
+                $params{source} = (caller)[1] if $params{caller_source};
 
                 # first command is startup parameters
                 $cmd = _serialize({

@@ -17,6 +17,7 @@ MANIFEST
 MANIFEST.SKIP
 META.yml			Module meta-data (added by MakeMaker)
 README
+ex/parallel-get.pl
 t/00-create.t
 t/01-plain-worker.t
 t/02-method-worker.t
