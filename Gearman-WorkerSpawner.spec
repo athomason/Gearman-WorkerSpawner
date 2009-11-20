@@ -13,7 +13,7 @@
 
 name:      perl-Gearman-WorkerSpawner
 summary:   Gearman-WorkerSpawner - Subprocess manager for Gearman workers in a
-version:   2.02
+version:   2.03
 release:   1
 vendor:    Adam Thomason, <athomason@sixapart.com>
 packager:  Arix International <cpan2rpm@arix.com>
@@ -23,7 +23,7 @@ url:       http://www.cpan.org
 buildroot: %{_tmppath}/%{name}-%{version}-%(id -u -n)
 buildarch: noarch
 prefix:    %(echo %{_prefix})
-source:    Gearman-WorkerSpawner-2.02.tar.gz
+source:    Gearman-WorkerSpawner-2.03.tar.gz
 
 %description
 None.
