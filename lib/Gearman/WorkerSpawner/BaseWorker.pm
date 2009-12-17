@@ -82,24 +82,51 @@ sub new {
     return bless $self, $class;
 }
 
+=head1 METHODS
+
+=item register_method($function_name)
+
+=item register_method($function_name, $method)
+
+=item register_method($function_name, $method, $timeout)
+
+Registers a method to be called via Gearman::WorkerSpawner->run_method. A
+Gearman function named $function_name will be registered with the server. When
+a client calls that function, the method named $method (may alternatively be a
+coderef) will be called with the Gearman::WorkerSpawner::BaseWorker object as
+the first argument. $method defaults to be the same as $function_name if not
+provided.
+
+If $timeout is provided, the Gearman server may attempt to retry the function
+if the job is not finished withint $timeout seconds.
+
+The parameters to $method and return value (which should be a scalar) from it
+are marshalled by Storable.
+
+=cut
+
 sub register_method {
     my Gearman::WorkerSpawner::BaseWorker $self = shift;
-    my $name   = shift;
-    my $method = shift;
+    my $name    = shift;
+    my $method  = shift || $name;
+    my $timeout = shift;
 
-    $self->register_function($name => sub {
+    my @timeout;
+    @timeout = ($timeout) if defined $timeout;
+
+    $self->register_function($name, @timeout, sub {
         $self->{jobs_done}++;
 
         my $job = shift;
         my $arg = $job->arg;
 
         # deserialize argument
-        my $param = thaw($job->arg);
+        my $params = thaw($job->arg);
 
-        my $retval = $self->$method(ref $param eq 'SCALAR' ? $$param : $param);
+        my @retvals = $self->$method(@$params);
 
-        # serialize return value
-        return \nfreeze(ref $retval ? $retval : \$retval);
+        # serialize return value(s)
+        return \nfreeze(\@retvals);
     });
 }
 

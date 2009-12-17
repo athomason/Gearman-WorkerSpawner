@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 7;
+use Test::More tests => 9;
 
 use FindBin '$Bin';
 use Gearman::WorkerSpawner;
@@ -26,20 +26,25 @@ $spawner->add_worker(
 
 $spawner->run_method(constant => 0, sub {
     my $number = shift;
-    is(ref $number, 'SCALAR', 'numeric scalar ref');
-    is($$number, 123, 'numeric scalar value');
+    is(ref $number, '', 'numeric scalar');
+    is($number, 123, 'numeric scalar value');
     $spawner->run_method(constant => 1, sub {
         my $string = shift;
-        is(ref $string, 'SCALAR', 'string scalar ref');
-        is($$string, 'string', 'string scalar value');
+        is(ref $string, '', 'string scalar');
+        is($string, 'string', 'string scalar value');
         $spawner->run_method(echo => 'foo', sub {
             my $echoed = shift;
-            is(ref $echoed, 'SCALAR');
-            is($$echoed, 'foo');
-            $spawner->run_method(add => { right_hand => $right_hand }, sub {
-                my $return = shift;
-                is($return->{sum}, $left_hand + $right_hand);
-                exit;
+            is(ref $echoed, '');
+            is($echoed, 'foo');
+            $spawner->run_method(echo_ref => \'bar', sub {
+                my $echoed_ref = shift;
+                is(ref $echoed_ref, 'SCALAR', 'string scalar ref');
+                is($$echoed_ref, 'bar', 'string scalar ref value');
+                $spawner->run_method(add => { right_hand => $right_hand }, sub {
+                    my $return = shift;
+                    is($return->{sum}, $left_hand + $right_hand);
+                    exit;
+                });
             });
         });
     });

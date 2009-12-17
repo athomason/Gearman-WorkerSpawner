@@ -8,9 +8,10 @@ use base 'Gearman::WorkerSpawner::BaseWorker';
 sub new {
     my $class = shift;
     my MethodWorker $self = bless $class->SUPER::new(@_), $class;
-    $self->register_method(constant => \&constant);
-    $self->register_method(echo     => \&echo);
-    $self->register_method(add      => \&add);
+    $self->register_method('constant');
+    $self->register_method('echo');
+    $self->register_method('echo_ref');
+    $self->register_method('add');
     return $self;
 }
 
@@ -29,6 +30,13 @@ sub echo {
     my MethodWorker $self = shift;
     my $arg = shift;
     return $arg;
+}
+
+sub echo_ref {
+    my MethodWorker $self = shift;
+    my $arg_ref = shift;
+    my $arg = $$arg_ref;
+    return \$arg;
 }
 
 sub add {

@@ -54,7 +54,7 @@ be created for the lifetime of the spawner.
 use strict;
 use warnings;
 
-our $VERSION = '2.03';
+our $VERSION = '2.04';
 
 use Carp qw/ croak /;
 use Danga::Socket ();
@@ -402,9 +402,6 @@ on_fail handler will be called if marshalling fails for some reason.
 If the second form is used, an empty %options is created and $callback is used
 as the on_complete handler.
 
-If the return value of the method is a scalar, a scalar reference will be
-returned to the caller.
-
 =cut
 
 sub run_method {
@@ -421,23 +418,26 @@ sub run_method {
             my $ref_to_frozen_retval = shift;
 
             if (!$ref_to_frozen_retval || ref $ref_to_frozen_retval ne 'SCALAR') {
-                $options->{on_fail}->() if exists $options->{on_fail};
+                $options->{on_fail}->('marshaling error') if exists $options->{on_fail};
                 return;
             }
 
-            my $ret = eval { thaw($$ref_to_frozen_retval) };
+            my $rets = eval { thaw($$ref_to_frozen_retval) };
             if ($@) {
-                $options->{on_fail}->($@) && exists $options->{on_fail};
+                $options->{on_fail}->($@) if exists $options->{on_fail};
+                return;
+            }
+            elsif (ref $rets ne 'ARRAY') {
+                $options->{on_fail}->('marshaling error') if exists $options->{on_fail};
                 return;
             }
 
-            $cb->($ret);
+            $cb->(@$rets);
         };
     }
 
     # serialize parameter
-    my $arg_ref = ref $arg ? $arg : \$arg;
-    _gearman_client()->add_task(Gearman::Task->new($methodname, \nfreeze($arg_ref), $options));
+    _gearman_client()->add_task(Gearman::Task->new($methodname, \nfreeze([$arg]), $options));
 }
 
 =item $spawner->stop_workers([$sig])
