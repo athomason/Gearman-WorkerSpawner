@@ -1,4 +1,6 @@
 Revision history for Perl extension Gearman::WorkerSpawner
+2.05  Thu Dec 17 17:53:07 PST 2009
+        - Allow ->new(gearmand => ) to take an arrayref
 2.04  Wed Dec 16 19:29:34 PST 2009
         - Add timeout parameter to ::BaseWorker->register_method
         - Change marshalling of args and return values to always wrap in an arrayref

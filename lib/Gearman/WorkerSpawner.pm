@@ -54,7 +54,7 @@ be created for the lifetime of the spawner.
 use strict;
 use warnings;
 
-our $VERSION = '2.04';
+our $VERSION = '2.05';
 
 use Carp qw/ croak /;
 use Danga::Socket ();
@@ -79,12 +79,13 @@ Constructor, can take the following parameters:
 
 =item * gearmand
 
-Specifies the location of the Gearman server to use. This may either be a comma
-separated list of host:port specs, or I<auto>, which specifies that the
-WorkerSpawner should spawn a separate process to contain a Gearman server. The
-advantage of using this over running gearmand externally is that the Gearman
-server process will halt itself in the event of the calling process' demise;
-the disadvantage is that you give up gearmand redundancy. Defaults to I<auto>.
+Specifies the location of the Gearman server to use. This may either be an
+array reference of host:port specs ; or a comma separated list of host:port
+specs; or I<auto>, which specifies that the WorkerSpawner should spawn a
+separate process to contain a Gearman server. The advantage of using this over
+running gearmand externally is that the Gearman server process will halt itself
+in the event of the calling process' demise; the disadvantage is that you give
+up gearmand redundancy. Defaults to I<auto>.
 
 =item * check_period
 
@@ -477,7 +478,10 @@ my $gearmand_pid;
 sub gearman_servers {
     unless ($gearman_servers) {
         use Carp; Carp::cluck("bad server list") unless defined $gearmand_spec;
-        if ($gearmand_spec eq 'auto' || $gearmand_spec eq 'external') {
+        if (ref $gearmand_spec eq 'ARRAY') {
+            $gearman_servers = [@$gearmand_spec];
+        }
+        elsif ($gearmand_spec eq 'auto' || $gearmand_spec eq 'external') {
             # ask OS for open listening port
             my $gearmand_port;
             eval {
