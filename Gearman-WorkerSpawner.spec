@@ -1,16 +1,15 @@
-#
-#   - Gearman-WorkerSpawner -
 %define pkgname Gearman-WorkerSpawner
 %define filelist %{pkgname}-%{version}-filelist
 %define NVR %{pkgname}-%{version}-%{release}
 %define maketest 1
+%define VERSION %(grep 'VERSION =' lib/Gearman/WorkerSpawner.pm | perl -nle '/([0-9.]+)/ && print $1')
 
 name:      perl-Gearman-WorkerSpawner
 summary:   Gearman-WorkerSpawner - Subprocess manager for Gearman workers in a
-version:   2.05
+version:   %{VERSION}
 release:   1
 vendor:    Adam Thomason, <athomason@sixapart.com>
-packager:  Arix International <cpan2rpm@arix.com>
+packager:  Six Apart Ltd <cpan@sixapart.com>
 license:   Artistic
 group:     Applications/CPAN
 url:       http://www.cpan.org
@@ -21,12 +20,6 @@ source:    Gearman-WorkerSpawner-%{version}.tar.gz
 
 %description
 None.
-
-#
-# This package was generated automatically with the cpan2rpm
-# utility.  To get this software or for more information
-# please visit: http://perl.arix.com/
-#
 
 %prep
 %setup -q -n %{pkgname}-%{version} 
