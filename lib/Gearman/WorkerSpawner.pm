@@ -54,7 +54,7 @@ be created for the lifetime of the spawner.
 use strict;
 use warnings;
 
-our $VERSION = '2.06';
+our $VERSION = '2.07';
 
 use Carp qw/ croak /;
 use Danga::Socket ();
@@ -103,8 +103,8 @@ C<$^X>.
 WorkerSpawner periodically reaps any dead children of its running process. If
 there are non-WorkerSpawner child processes in your program, you won't know
 when they die. To be notified of such events, you can provide a subref as the
-C<reaper> parameter which will be called with the PID of any reaped children
-which don't belong to WorkerSpawner.
+C<reaper> parameter which will be called with the PID and exit code of any
+reaped children which don't belong to WorkerSpawner.
 
 Along that line, only a single WorkerSpawner may be created in a process
 (otherwise multiple spawners would race to reap each others' children, making
@@ -156,26 +156,29 @@ sub new {
     # _supervise. see special handling in add_worker
     my $self = bless \%params, $class;
 
-    # clean up any dead supervisors. might catch non-WorkerSpawner processes,
+    # clean up any dead supervisors. will also catch non-WorkerSpawner processes,
     # so fire the callback for those if provided
-    _run_periodically(sub {
+    my $child_handler = sub {
         my %reaped = $self->_reap();
         while (my ($pid, $thing) = each %reaped) {
-            if (defined $thing) {
-                if (ref $thing eq 'CODE') {
-                    $thing->();
-                }
+            if ($thing->{action}) {
+                # spawner
+                $thing->{action}->($thing->{exit_code});
             }
             elsif ($self->{reaper}) {
-                $self->{reaper}->($pid);
+                # unowned child
+                $self->{reaper}->($pid, $thing->{exit_code});
             }
         }
-    }, $self->{check_period});
+    };
 
-    # restart children quickly
+    # restart children immediately if installing sigchld handler
     $SIG{CHLD} = sub {
-        Danga::Socket->AddTimer(0, sub { $self->_reap });
+        Danga::Socket->AddTimer(0, $child_handler);
     } if $params{sigchld};
+
+    # ... and/or check periodically
+    _run_periodically($child_handler, $self->{check_period});
 
     $started = 1;
 
@@ -293,8 +296,16 @@ sub add_worker {
                 $self->{supervisors}{$class} = $writer;
                 close $reader;
 
-                # invalidate cmd pipe "cache" when kid dies
-                $self->{kids}{$pid} = sub { delete $self->{supervisors}{$class} };
+                $self->{kids}{$pid}{action} = sub {
+                    # supervisor shouldn't exit; compilation of worker class probably failed
+                    my $code = shift;
+                    if ($code != 0) {
+                        die "supervisor died ($code)\n";
+                    }
+
+                    # invalidate cmd pipe "cache" when kid dies
+                    delete $self->{supervisors}{$class};
+                };
 
                 # make a serializable copy of $self
                 my $storable_self = bless {
@@ -646,7 +657,8 @@ sub _check_workers {
     # reap slots from dead kids
     my %reaped = $self->_reap();
 
-    while (my ($pid, $open_slot) = each %reaped) {
+    for my $pid (keys %reaped) {
+        my $open_slot = $reaped{$pid}{slot};
         if (defined $open_slot) {
             push @open_slots, $open_slot;
         }
@@ -674,7 +686,7 @@ sub _check_workers {
         }
 
         # parent is still supervisor
-        $self->{kids}{$pid} = $slot;
+        $self->{kids}{$pid}{slot} = $slot;
     }
 }
 
@@ -750,6 +762,7 @@ sub _reap {
     my %reaped;
     while ((my $pid = waitpid(-1, WNOHANG)) > 0) {
         $reaped{$pid} = delete $self->{kids}{$pid};
+        $reaped{$pid}{exit_code} = $?;
     }
     return %reaped;
 }

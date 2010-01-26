@@ -23,6 +23,8 @@ t/00-create.t
 t/01-plain-worker.t
 t/02-method-worker.t
 t/03-sync-client.t
+t/04-bad-worker.t
+t/lib/BadWorker.pm
 t/lib/MethodWorker.pm
 t/lib/TestWorker.pm
 Gearman-WorkerSpawner.spec
