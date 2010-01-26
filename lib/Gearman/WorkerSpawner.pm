@@ -54,7 +54,7 @@ be created for the lifetime of the spawner.
 use strict;
 use warnings;
 
-our $VERSION = '2.05';
+our $VERSION = '2.06';
 
 use Carp qw/ croak /;
 use Danga::Socket ();
@@ -529,7 +529,9 @@ sub gearman_servers {
     }
     return $gearman_servers;
 }
+
 # historical alias
+no warnings 'once';
 *gearman_server = \&gearman_servers;
 
 sub gearmand_pid {

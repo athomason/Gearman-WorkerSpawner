@@ -12,6 +12,7 @@ inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
 lib/Gearman/WorkerSpawner.pm
 lib/Gearman/WorkerSpawner/BaseWorker.pm
+lib/Gearman/WorkerSpawner/BaseWorker/Client.pm
 Makefile.PL
 MANIFEST
 MANIFEST.SKIP
@@ -21,6 +22,7 @@ ex/parallel-get.pl
 t/00-create.t
 t/01-plain-worker.t
 t/02-method-worker.t
+t/03-sync-client.t
 t/lib/MethodWorker.pm
 t/lib/TestWorker.pm
 Gearman-WorkerSpawner.spec
