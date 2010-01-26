@@ -167,7 +167,7 @@ sub new {
                 }
             }
             elsif ($self->{reaper}) {
-                $self->{reaper}->($_);
+                $self->{reaper}->($pid);
             }
         }
     }, $self->{check_period});
