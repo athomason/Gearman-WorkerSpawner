@@ -12,6 +12,8 @@ my $spawner = Gearman::WorkerSpawner->new;
 
 push @INC, "$Bin/lib";
 
+open STDERR, '>', '/dev/null';
+
 $spawner->add_worker(class => 'BadWorker');
 
 eval { Danga::Socket->EventLoop; };
