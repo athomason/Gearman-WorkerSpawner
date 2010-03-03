@@ -54,7 +54,7 @@ be created for the lifetime of the spawner.
 use strict;
 use warnings;
 
-our $VERSION = '2.07';
+our $VERSION = '2.08';
 
 use Carp qw/ croak /;
 use Danga::Socket ();
@@ -144,6 +144,7 @@ sub new {
         quitting        => 0,
         gearmand        => 'auto',
         sigchld         => 1,
+        method_suffix   => '_m',
         @_
     );
 
@@ -420,6 +421,8 @@ sub run_method {
     my Gearman::WorkerSpawner $self = shift;
     my ($methodname, $arg, $options) = @_;
 
+    $methodname .= $self->{method_suffix};
+
     if (ref $options eq 'CODE') {
         $options = { on_complete => $options };
     }
@@ -450,6 +453,18 @@ sub run_method {
 
     # serialize parameter
     _gearman_client()->add_task(Gearman::Task->new($methodname, \nfreeze([$arg]), $options));
+}
+
+=item method_suffix([$suffix])
+
+Accessor for the suffix which is appended to the method name. Defaults to '_m'.
+
+=cut
+
+sub method_suffix {
+    my Gearman::WorkerSpawner $self = shift;
+    $self->{method_suffix} = shift if @_;;
+    return $self->{method_suffix};
 }
 
 =item $spawner->stop_workers([$sig])
@@ -595,10 +610,7 @@ sub _supervise {
     my $startup_data = <$reader>; # need this now, so allow blocking read
     my $startup_params = _unserialize($startup_data);
 
-    my %inc_exists = map { $_ => 1 } @INC;
-    for my $dir (@{ $startup_params->{inc} }) {
-        push @INC, $dir unless $inc_exists{$dir};
-    }
+    @INC = @{ $startup_params->{inc} };
 
     my $worker_class = $startup_params->{class};
     $0 = sprintf "%s supervisor", $worker_class;
@@ -811,7 +823,7 @@ Adam Thomason, E<lt>athomason@sixapart.comE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2007-2009 by Six Apart, E<lt>cpan@sixapart.comE<gt>
+Copyright (C) 2007-2010 by Six Apart, E<lt>cpan@sixapart.comE<gt>
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.6 or,

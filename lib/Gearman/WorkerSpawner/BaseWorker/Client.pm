@@ -24,18 +24,33 @@ use warnings;
 
 use base 'Gearman::Client';
 
+use fields qw/ method_suffix /;
+
 use Storable qw/ nfreeze thaw /;
 
 sub new {
     my $ref = shift;
     my $class = ref $ref || $ref;
 
-    return bless Gearman::Client->new(@_), $class;
+    my Gearman::WorkerSpawner::BaseWorker::Client $self =
+        bless Gearman::Client->new(@_), $class;
+
+    $self->{method_suffix} = '_m';
+
+    return $self;
+}
+
+sub method_suffix {
+    my Gearman::WorkerSpawner::BaseWorker::Client $self = shift;
+    $self->{method_suffix} = shift if @_;;
+    return $self->{method_suffix};
 }
 
 sub run_method {
-    my $self = shift;
+    my Gearman::WorkerSpawner::BaseWorker::Client $self = shift;
     my ($methodname, $arg) = @_;
+
+    $methodname .= $self->{method_suffix};
 
     my $frozen_arg = \nfreeze([$arg]);
 

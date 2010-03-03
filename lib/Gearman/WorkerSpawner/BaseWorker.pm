@@ -64,6 +64,7 @@ use fields (
     'slot',
     'max_jobs',
     'jobs_done',
+    'method_suffix',
 );
 
 use Storable qw(nfreeze thaw);
@@ -74,10 +75,11 @@ sub new {
     my $class = ref $this || $this;
     my Gearman::WorkerSpawner::BaseWorker $self = Gearman::Worker->new(job_servers => $gearmands);
 
-    $self->{slot}      = $slot;
-    $self->{config}    = $config;
-    $self->{max_jobs}  = $config->{max_jobs} || undef;
-    $self->{jobs_done} = 0;
+    $self->{slot}           = $slot;
+    $self->{config}         = $config;
+    $self->{max_jobs}       = $config->{max_jobs} || undef;
+    $self->{jobs_done}      = 0;
+    $self->{method_suffix}  = '_m';
 
     return bless $self, $class;
 }
@@ -111,6 +113,8 @@ sub register_method {
     my $method  = shift || $name;
     my $timeout = shift;
 
+    $name .= $self->{method_suffix};
+
     my @timeout;
     @timeout = ($timeout) if defined $timeout;
 
@@ -128,6 +132,18 @@ sub register_method {
         # serialize return value(s)
         return \nfreeze(\@retvals);
     });
+}
+
+=item method_suffix([$suffix])
+
+Accessor for the suffix which is appended to the method name. Defaults to '_m'.
+
+=cut
+
+sub method_suffix {
+    my Gearman::WorkerSpawner::BaseWorker $self = shift;
+    $self->{method_suffix} = shift if @_;;
+    return $self->{method_suffix};
 }
 
 sub post_work {

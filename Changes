@@ -1,4 +1,7 @@
 Revision history for Perl extension Gearman::WorkerSpawner
+2.08  Wed Mar  3 11:55:20 PST 2010
+        - Add a modifiable suffix to method names to prevent collisions when switching from Gearman::Worker
+        - Keep @INC in the correct order in workers by copying wholesale from spawner
 2.07  Tue Jan 26 15:31:36 PST 2010
         - To catch worker compilation failure, notice and bail if supervisors exit uncleanly
 2.06  Mon Jan 25 16:38:57 PST 2010
