@@ -67,4 +67,17 @@ sub run_method {
     return @$rets;
 }
 
+sub run_method_background {
+    my Gearman::WorkerSpawner::BaseWorker::Client $self = shift;
+    my ($methodname, $arg) = @_;
+
+    $methodname .= $self->{method_suffix};
+
+    my $frozen_arg = \nfreeze([$arg]);
+
+    $self->dispatch_background($methodname => $frozen_arg);
+
+    return;
+}
+
 1;
