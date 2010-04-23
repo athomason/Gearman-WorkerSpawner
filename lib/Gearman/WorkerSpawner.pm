@@ -54,7 +54,7 @@ be created for the lifetime of the spawner.
 use strict;
 use warnings;
 
-our $VERSION = '2.09';
+our $VERSION = '2.10';
 
 use Carp qw/ croak /;
 use Danga::Socket ();
@@ -607,7 +607,7 @@ sub _supervise {
     my $fileno = shift;
     open my $reader, '<&=', $fileno or die "failed to open pipe: $!\n";
 
-    my $startup_data = <$reader>; # need this now, so allow blocking read
+    chomp(my $startup_data = <$reader>); # need this now, so allow blocking read
     my $startup_params = _unserialize($startup_data);
 
     @INC = @{ $startup_params->{inc} };
@@ -636,9 +636,14 @@ sub _supervise {
 
     # set nonblocking since these commands come any time
     IO::Handle::blocking($reader, 0);
+    my $read_buf = '';
     my $handler = sub {
         while (my $line = <$reader>) {
-            my $slots = _unserialize($line);
+            $read_buf .= $line;
+            last unless $line =~ /\n$/;
+            chomp($read_buf);
+            my $slots = _unserialize($read_buf);
+            $read_buf = '';
             push @open_slots, @$slots;
         }
     };
@@ -758,7 +763,7 @@ sub _serialize {
 }
 
 sub _unserialize {
-    chomp(my $frozen = shift);
+    my $frozen = shift;
     return thaw pack 'h*', $frozen;
 }
 

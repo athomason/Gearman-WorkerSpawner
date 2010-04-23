@@ -18,6 +18,12 @@ buildarch: noarch
 prefix:    %(echo %{_prefix})
 source:    Gearman-WorkerSpawner-%{version}.tar.gz
 
+autoreq:   off
+requires:  perl(Carp), perl(Config), perl(Cwd), perl(Danga::Socket), perl(ExtUtils::MakeMaker), perl(Fcntl), perl(File::Find), perl(File::Path), perl(File::Spec), perl(FindBin), perl(Gearman::Client), perl(Gearman::Client::Async), perl(Gearman::Server), perl(IO::Handle), perl(IO::Socket::INET), perl(Module::Install::Base), perl(POSIX), perl(Storable), perl(base), perl(constant), perl(fields), perl(strict), perl(vars), perl(warnings), rpmlib(CompressedFileNames) <= 3.0.4-1, rpmlib(PayloadFilesHavePrefix) <= 4.0-1, rpmlib(VersionedDependencies) <= 3.0.3-1
+
+autoprov:  off
+provides:  perl(Gearman::WorkerSpawner), perl(Gearman::WorkerSpawner::BaseWorker), perl-Gearman-WorkerSpawner = 2.10-1
+
 %description
 None.
 

@@ -1,4 +1,6 @@
 Revision history for Perl extension Gearman::WorkerSpawner
+2.10  Thu Apr 22 16:42:08 PDT 2010
+        - Buffer reads in supervisor to avoid racing
 2.09  Mon Mar 15 17:30:14 PDT 2010
         - Add run_method_background in sync client
 2.08  Wed Mar  3 11:55:20 PST 2010
