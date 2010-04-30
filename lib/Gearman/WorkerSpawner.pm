@@ -54,7 +54,7 @@ be created for the lifetime of the spawner.
 use strict;
 use warnings;
 
-our $VERSION = '2.10';
+our $VERSION = '2.11';
 
 use Carp qw/ croak /;
 use Danga::Socket ();
@@ -714,13 +714,13 @@ sub _do_work {
 
     my $params = $slot->[SLOT_PARAMS];
     my $worker_class = $params->{class};
+    $0 = sprintf "%s #%d", $worker_class, $slot->[SLOT_NUM];
+
     my $worker = $worker_class->new($slot->[SLOT_NUM], $params->{config}, gearman_servers());
 
     die "failed to create $worker_class object" unless $worker;
 
     $worker->job_servers(@{ $self->{gearmand} });
-
-    $0 = sprintf "%s #%d", $worker_class, $slot->[SLOT_NUM];
 
     # each worker gets a unique function so we can ping it in wait_until_all_ready
     $worker->register_function(_ping_name($slot->[SLOT_ID]) => sub {
