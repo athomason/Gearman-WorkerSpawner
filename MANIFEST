@@ -13,8 +13,10 @@ t/02-method-worker.t
 t/03-sync-client.t
 t/04-bad-worker.t
 t/05-bad-worker2.t
+t/06-many-workers.t
 t/lib/BadWorker.pm
 t/lib/BadWorker2.pm
+t/lib/LargeWorker.pm
 t/lib/MethodWorker.pm
 t/lib/TestWorker.pm
 Gearman-WorkerSpawner.spec
