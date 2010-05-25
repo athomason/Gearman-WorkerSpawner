@@ -1,5 +1,3 @@
-# $Id$
-
 use inc::Module::Install;
 
 name            'Gearman-WorkerSpawner';
