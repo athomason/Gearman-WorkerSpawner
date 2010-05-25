@@ -20,4 +20,4 @@ requires:
   Gearman::Client::Async: 0.94
   Gearman::Server: 1.09
   Storable: 0
-version: 2.11
+version: 2.12

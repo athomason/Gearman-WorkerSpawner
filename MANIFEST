@@ -12,7 +12,6 @@ inc/Module/Install/WriteAll.pm
 lib/Gearman/WorkerSpawner.pm
 lib/Gearman/WorkerSpawner/BaseWorker.pm
 lib/Gearman/WorkerSpawner/BaseWorker/Client.pm
-Makefile
 Makefile.PL
 MANIFEST
 MANIFEST.SKIP

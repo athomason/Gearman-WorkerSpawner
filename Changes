@@ -1,4 +1,6 @@
 Revision history for Perl extension Gearman::WorkerSpawner
+2.12  Mon May 24 17:51:38 PDT 2010
+        - Fixes for Module::Install
 2.11  Fri Apr 30 16:47:53 PDT 2010
         - Change $0 a bit sooner
 2.10  Thu Apr 22 16:42:08 PDT 2010
