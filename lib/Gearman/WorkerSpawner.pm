@@ -54,7 +54,7 @@ be created for the lifetime of the spawner.
 use strict;
 use warnings;
 
-our $VERSION = '2.11';
+our $VERSION = '2.12';
 
 use Carp qw/ croak /;
 use Danga::Socket ();

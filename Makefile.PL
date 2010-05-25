@@ -12,5 +12,4 @@ requires        'Gearman::Client::Async'        => 0.94;
 requires        'Gearman::Server'               => 1.09;
 requires        'Storable'                      => 0;
 
-auto_install;
 WriteAll;
