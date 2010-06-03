@@ -65,7 +65,7 @@ use Gearman::Server ();
 use IO::Handle ();
 use IO::Socket::INET qw/ SOCK_STREAM /;
 use POSIX qw/ :sys_wait_h /;
-use Storable qw/ nfreeze thaw /;
+use Socket ();
 
 =head1 CLASS METHODS
 
@@ -234,6 +234,112 @@ use constant SLOT_NUM    => 0;
 use constant SLOT_ID     => 1;
 use constant SLOT_PARAMS => 2;
 
+sub _supervisor_connection {
+    my Gearman::WorkerSpawner $self = shift;
+    my $class = shift;
+    my $on_connect = shift;
+
+    my $writer = $self->{supervisors}{$class};
+    return $writer if $writer;
+
+    # find supervisor .pm file
+    (my $package_spec = ref $self) =~ s{::}{/}g;
+    my $package_file = "$INC{$package_spec}/Supervisor.pm";
+    die "couldn't determine location of myself" unless $package_file && -r $package_file;
+
+    # don't have an existing child for this worker class
+    my $spawn_supervisor;
+    $spawn_supervisor = sub {
+        my $tries = shift;
+        my $cxn = eval { $self->_spawn_supervisor($class); };
+        if ($@) {
+            if ($tries >= 10) {
+                die "failed $tries times to start supervisor for $class";
+            }
+            Danga::Socket->AddTimer(5, sub { $spawn_supervisor->($tries + 1) });
+        }
+        else {
+            $on_connect->($cxn);
+        }
+    };
+    $spawn_supervisor->(0);
+}
+
+sub _spawn_supervisor {
+    my Gearman::WorkerSpawner $self = shift;
+    my $class = shift;
+
+    # create a channel for talking to child (supervisor)
+    my ($parent, $child);
+    socketpair($parent, $child, Socket::AF_UNIX, Socket::SOCK_STREAM, Socket::PF_UNSPEC) or die "socketpair failed: $!\n";
+
+    my $parent_pid = $$;
+
+    my $pid = fork;
+    die "failed to fork: $!\n" unless defined $pid;
+
+    if (!$pid) {
+        # child: start supervisor in a distinct process to manage the new jobs
+
+        # mark child's half of socketpair so exec doesn't close it
+        fcntl($child, F_GETFD, my $flags = '');
+        vec($flags, FD_CLOEXEC, 1) = 0;
+        fcntl($child, F_SETFD, $flags);
+
+        close $parent;
+        exec $self->{perl}, $package_file, fileno $child;
+        die "exec failed: $!\n";
+    }
+
+    # parent
+
+    $parent->autoflush(1);
+    $parent->block(0);
+
+    my $read_buf;
+    my $cxn = $self->{supervisors}{$class} =
+        Gearman::WorkerSpawner::Parent::SupervisorConnection->new($parent, \$read_buf),
+
+    $self->{kids}{$pid}{action} = sub {
+        # supervisor shouldn't exit; compilation of worker class probably failed
+        my $code = shift;
+        if ($code != 0) {
+            die "supervisor died ($code): $read_buf\n";
+        }
+
+        # invalidate cmd pipe "cache" when supervisor dies
+        if (my $cxn = delete $self->{supervisors}{$class}) {
+            $cxn->close;
+        }
+    };
+
+    # serialize Supervisor object parameters
+    my $supervisor_params = {
+        map { $_ => $self->{$_} }
+        grep {
+            $_ ne 'supervisors' && # globs aren't serializable
+            $_ ne 'kids' # so DESTROY doesn't kill them
+        }
+        keys %$self
+    };
+
+    $params{source} = (caller)[1] if $params{caller_source};
+
+    # supervisor expects first line to contain startup parameters
+    $cmd = _serialize({
+        spawner     => $supervisor_params,
+        class       => $class,
+        parent_pid  => $parent_pid,
+        servers     => gearman_servers(),
+        source      => $params{source},
+        inc         => \@INC,
+    });
+
+    $cxn->write(\$cmd);
+
+    return $cxn;
+}
+
 sub add_worker {
     my Gearman::WorkerSpawner $self = shift;
     my %params = (
@@ -243,12 +349,6 @@ sub add_worker {
 
     my $class = $params{class};
     croak 'no class provided' unless $class;
-
-    # exec this .pm file
-    (my $package_spec = __PACKAGE__ . '.pm') =~ s{::}{/}g;
-    my $package_file = $INC{$package_spec};
-    die "couldn't determine location of myself" unless $package_file;
-
 
     # "slots" are the set of jobs that each supervisor is managing. each worker
     # slot gets different parameters  so they can differentiate themselves
@@ -265,89 +365,10 @@ sub add_worker {
     push @open_slots, @slots;
     $num_workers += $params{num_workers};
 
-    my $success = 1;
-    local $SIG{CHLD} = 'IGNORE';
-    for (1 .. 10) {
-        my $cmd = '';
-
-        my $writer = $self->{supervisors}{$class};
-        if (!defined $writer) {
-            # don't have an existing child for this worker class
-
-            # logically, we want to call $self->_supervise, except in a separate
-            # process which has a reduced memory footprint after exec'ing. therefore we
-            # need to recreate $self and parameters in the "remote" _supervise
-            # procedure. create a pipe over which to do that.
-            pipe(my $reader, $writer) or die "pipe failed: $!\n";
-            $writer->autoflush(1);
-            $reader->autoflush(1);
-
-            # so exec doesn't close it
-            fcntl($reader, F_GETFD, my $flags = '');
-            vec($flags, FD_CLOEXEC, 1) = 0;
-            fcntl($reader, F_SETFD, $flags);
-
-            my $parent_pid = $$;
-
-            my $pid = fork;
-            die "failed to fork: $!\n" unless defined $pid;
-
-            if ($pid) {
-                # parent
-                $self->{supervisors}{$class} = $writer;
-                close $reader;
-
-                $self->{kids}{$pid}{action} = sub {
-                    # supervisor shouldn't exit; compilation of worker class probably failed
-                    my $code = shift;
-                    if ($code != 0) {
-                        die "supervisor died ($code)\n";
-                    }
-
-                    # invalidate cmd pipe "cache" when kid dies
-                    delete $self->{supervisors}{$class};
-                };
-
-                # make a serializable copy of $self
-                my $storable_self = bless {
-                    map { $_ => $self->{$_} }
-                    grep {
-                        $_ ne 'supervisors' && # globs aren't serializable
-                        $_ ne 'kids' # so DESTROY doesn't kill them
-                    }
-                    keys %$self
-                }, __PACKAGE__;
-
-                $params{source} = (caller)[1] if $params{caller_source};
-
-                # first command is startup parameters
-                $cmd = _serialize({
-                    spawner     => $storable_self,
-                    class       => $class,
-                    ppid        => $parent_pid,
-                    gearmand    => gearman_servers(),
-                    source      => $params{source},
-                    inc         => \@INC,
-                });
-            }
-            else {
-                # child: start supervisor in a distinct process to manage the new jobs
-                exec $self->{perl}, $package_file, fileno $reader; # $self->_supervise
-                die "exec failed: $!\n";
-            }
-        }
-
-        # subsequent commands start new workers
-        $cmd .= _serialize(\@slots);
-
-        local $SIG{PIPE} = 'IGNORE';
-        return if print $writer $cmd;
-
-        # print failed, try again
-        delete $self->{supervisors}{$class} unless $success;
-        sleep 1;
-    }
-    die "failed to spawn workers";
+    $self->_supervisor_connection($class, sub {
+        $cxn = shift;
+        $cxn->write(\_serialize(\@slots));
+    });
 }
 
 =item $spawner->wait_until_all_ready()
@@ -507,7 +528,7 @@ sub gearman_servers {
         if (ref $gearmand_spec eq 'ARRAY') {
             $gearman_servers = [@$gearmand_spec];
         }
-        elsif ($gearmand_spec eq 'auto' || $gearmand_spec eq 'external') {
+        elsif ($gearmand_spec eq 'auto') {
             # ask OS for open listening port
             my $gearmand_port;
             eval {
@@ -529,7 +550,7 @@ sub gearman_servers {
             my $pid = fork;
             die "fork failed: $!" unless defined $pid;
             if ($pid) {
-                $gearman_servers = ["127.0.0.1:$gearmand_port"];
+                $gearman_servers = ["0.0.0.0:$gearmand_port"];
                 $gearmand_pid = $pid;
                 # don't return until the server is contactable
                 while (1) {
@@ -583,195 +604,6 @@ sub _gearman_client {
     return $gearman_client ||= Gearman::Client::Async->new(job_servers => gearman_servers());
 }
 
-=item Gearman::WorkerSpawner->_supervise('My::WorkerClass', @ARGV)
-
-Loads the given L<Gearman::Worker> subclass, then parses additional arguments
-as specified by the return value of the worker class' C<options()> class method
-via L<Getopt::Long>. These options are passed to the worker object's
-constructor and the C<work> method of the worker object is called repeatedly
-until either SIG_INT is received or the ppid changes (parent went away).
-
-This class method is automatically executed if Gearman/WorkerSpawner.pm has no
-C<caller()>, i.e. if it is run as a script rather than loaded as a module. This
-should only be done by other internal methods of this package (add_worker).
-
-=back
-
-=cut
-
-sub _supervise {
-    my $spawner_class = shift;
-
-    die "modulino invoked incorrectly, see documentation\n" unless @_;
-
-    my $fileno = shift;
-    open my $reader, '<&=', $fileno or die "failed to open pipe: $!\n";
-
-    chomp(my $startup_data = <$reader>); # need this now, so allow blocking read
-    my $startup_params = _unserialize($startup_data);
-
-    @INC = @{ $startup_params->{inc} };
-
-    my $worker_class = $startup_params->{class};
-    $0 = sprintf "%s supervisor", $worker_class;
-
-    die "no worker class provided" unless $worker_class;
-    die "parent went away before I started" if getppid != $startup_params->{ppid};
-
-    if (my $source_file = $startup_params->{source}) {
-        unless (eval "require '$source_file'; 1") {
-            die "failed to load worker class $worker_class from $source_file: $@";
-        }
-    }
-    else {
-        unless (eval "use $worker_class; 1") {
-            die "failed to load worker class $worker_class: $@";
-        }
-    }
-
-    my $self = $startup_params->{spawner};
-
-    $gearman_servers = $self->{gearmand} = $startup_params->{gearmand};
-    $self->{supervisor_pid} = $$;
-
-    # set nonblocking since these commands come any time
-    IO::Handle::blocking($reader, 0);
-    my $read_buf = '';
-    my $handler = sub {
-        while (my $line = <$reader>) {
-            $read_buf .= $line;
-            last unless $line =~ /\n$/;
-            chomp($read_buf);
-            my $slots = _unserialize($read_buf);
-            $read_buf = '';
-            push @open_slots, @$slots;
-        }
-    };
-    $handler->();
-
-    # spin up initial workers
-    $self->_check_workers;
-
-    # watch for parent going away
-    _run_periodically(sub { $self->_cleanup() if getppid != $startup_params->{ppid} }, 5);
-    $SIG{INT} = $SIG{TERM} = sub { $self->_cleanup };
-
-    # install handler for parent asking to start more workers
-    Danga::Socket->AddOtherFds(fileno $reader, $handler);
-
-    # periodically check for children needing replacement
-    _run_periodically(sub { $self->_check_workers }, $self->{check_period});
-
-    Danga::Socket->EventLoop;
-    exit 1;
-}
-
-# try to reap any worker processes, and start up any that are missing. also
-# starts up workers for the first time after they're added
-sub _check_workers {
-    my Gearman::WorkerSpawner $self = shift;
-
-    # reap slots from dead kids
-    my %reaped = $self->_reap();
-
-    for my $pid (keys %reaped) {
-        my $open_slot = $reaped{$pid}{slot};
-        if (defined $open_slot) {
-            push @open_slots, $open_slot;
-        }
-        else {
-            warn "dead child $pid didn't own a slot";
-        }
-    }
-
-    return if $self->{quitting};
-
-    return unless @open_slots;
-
-    # refill lowest slots first
-    @open_slots = sort {$a->[SLOT_NUM]<=>$b->[SLOT_NUM]} @open_slots;
-
-    while (my $slot = shift @open_slots) {
-        my $pid = fork;
-        die "fork failed: $!\n" unless defined $pid;
-
-        unless ($pid) {
-            # child is a worker
-            $SIG{INT} = $SIG{TERM} = sub { $self->_cleanup };
-            $self->_do_work($slot);
-            exit 1;
-        }
-
-        # parent is still supervisor
-        $self->{kids}{$pid}{slot} = $slot;
-    }
-}
-
-# create a worker and run it forever
-sub _do_work {
-    my Gearman::WorkerSpawner $self = shift;
-    my $slot = shift;
-
-    my $params = $slot->[SLOT_PARAMS];
-    my $worker_class = $params->{class};
-    $0 = sprintf "%s #%d", $worker_class, $slot->[SLOT_NUM];
-
-    my $worker = $worker_class->new($slot->[SLOT_NUM], $params->{config}, gearman_servers());
-
-    die "failed to create $worker_class object" unless $worker;
-
-    $worker->job_servers(@{ $self->{gearmand} });
-
-    # each worker gets a unique function so we can ping it in wait_until_all_ready
-    $worker->register_function(_ping_name($slot->[SLOT_ID]) => sub {
-        if ($worker->can('unregister_function')) {
-            # remove the function so it doesn't pollute server "status" command
-            $worker->unregister_function(_ping_name($slot->[SLOT_ID]));
-        }
-        return 1;
-    });
-
-    $SIG{INT} = sub { $quitting = 1 };
-    while (!$quitting) {
-        eval {
-            $worker->work(stop_if => sub {1});
-        };
-        $@ && warn "$worker_class [$$] failed: $@";
-
-        $worker->post_work if $worker->can('post_work');
-
-        # bail if supervisor went away
-        $quitting++ if getppid != $self->{supervisor_pid};
-    }
-    exit 0;
-}
-
-# takes a subref and a number of seconds, and runs the sub that often
-sub _run_periodically {
-    my $sub    = shift;
-    my $period = shift;
-    my $recycler;
-    $recycler = sub {
-        $sub->();
-        Danga::Socket->AddTimer($period, $recycler);
-    };
-    Danga::Socket->AddTimer(0, $recycler);
-}
-
-sub _serialize {
-    return join '', unpack('h*', nfreeze shift), "\n";
-}
-
-sub _unserialize {
-    my $frozen = shift;
-    return thaw pack 'h*', $frozen;
-}
-
-sub _ping_name {
-    my $id = shift;
-    return "ping_$id";
-}
-
 # consume kids and returns a hash $self->{kids} contents for reaped pids, or
 # undef for unknown kids
 sub _reap {
@@ -801,12 +633,6 @@ if (!caller()) {
 1;
 
 __END__
-
-=head1 BUGS
-
-=item * add_worker may sleep in attempt to recontact an unreachable supervisor
-process. This is detrimental if a worker is added after the Danga::Socket event
-loop is running.
 
 =head1 SEE ALSO
 
