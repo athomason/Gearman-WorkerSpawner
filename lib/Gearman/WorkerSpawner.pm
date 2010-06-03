@@ -54,7 +54,7 @@ be created for the lifetime of the spawner.
 use strict;
 use warnings;
 
-our $VERSION = '2.12';
+our $VERSION = '2.13';
 
 use Carp qw/ croak /;
 use Danga::Socket ();
@@ -156,6 +156,8 @@ sub new {
     # NB: this structure must be Storable-serializable for all bits used by
     # _supervise. see special handling in add_worker
     my $self = bless \%params, $class;
+
+    $params{initial_pid} = $$;
 
     # clean up any dead supervisors. will also catch non-WorkerSpawner processes,
     # so fire the callback for those if provided
@@ -488,7 +490,7 @@ Upon destruction, stop_workers is called unless you've already called it.
 
 sub DESTROY {
     my Gearman::WorkerSpawner $self = shift;
-    $self->stop_workers unless $self->{quitting};
+    $self->stop_workers unless $self->{quitting} || $self->{initial_pid} != $$;
 }
 
 =item $spawner->gearman_servers()
