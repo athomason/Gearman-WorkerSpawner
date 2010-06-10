@@ -61,7 +61,7 @@ require Gearman::WorkerSpawner;
 my $spawner = Gearman::WorkerSpawner->new;
 $spawner->add_worker(
     class         => 'Getter',
-    caller_source => 1,
+    caller_source => 1, # INLINE: this is required
     num_workers   => $workers,
     config        => { verbose => $verbose },
 );
