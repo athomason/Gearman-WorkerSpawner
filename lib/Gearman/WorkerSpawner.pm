@@ -54,7 +54,7 @@ be created for the lifetime of the spawner.
 use strict;
 use warnings;
 
-our $VERSION = '2.13';
+our $VERSION = '2.14';
 
 use Carp qw/ croak /;
 use Danga::Socket ();
@@ -119,14 +119,10 @@ true.
 
 =back
 
-=item Gearman::WorkerSpawner->gearmand_pid()
-
-Returns the PID of the gearmand which was started up if I<auto> was given
-as the C<gearmand> parameter to C<new>, or undef otherwise.
-
 =cut
 
 our $gearmand_spec;
+our $singleton;
 my $num_workers = 0;
 my @open_slots;
 my $started = 0;
@@ -185,8 +181,25 @@ sub new {
 
     $started = 1;
 
-    return $self;
+    return $singleton = $self;
 }
+
+=item * Gearman::WorkerSpawner->old
+
+Returns the Gearman::WorkerSpawner object created by a previous call to ->new.
+Use this if you need a WorkerSpawner in multiple places in your code within the
+same process and passing the object is tricky.
+
+=cut
+
+sub old {
+    return $singleton;
+}
+
+=item Gearman::WorkerSpawner->gearmand_pid()
+
+Returns the PID of the gearmand which was started up if I<auto> was given
+as the C<gearmand> parameter to C<new>, or undef otherwise.
 
 =head1 OBJECT METHODS
 

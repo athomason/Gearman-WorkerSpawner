@@ -1,4 +1,6 @@
 Revision history for Perl extension Gearman::WorkerSpawner
+2.14  Wed Feb 23 12:16:11 PST 2011
+        - Add ->old() for singleton access
 2.13  Thu Jun  3 16:02:18 PDT 2010
         - Prevent child processes from killing workers
 2.12  Mon May 24 17:51:38 PDT 2010
