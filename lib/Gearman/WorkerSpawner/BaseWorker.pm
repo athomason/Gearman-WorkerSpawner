@@ -73,7 +73,8 @@ sub new {
     my ($this, $slot, $config, $gearmands, $max_jobs) = @_;
 
     my $class = ref $this || $this;
-    my Gearman::WorkerSpawner::BaseWorker $self = Gearman::Worker->new(job_servers => $gearmands);
+    my Gearman::WorkerSpawner::BaseWorker $self = fields::new($class);
+    $self->SUPER::new(job_servers => $gearmands);
 
     $self->{slot}           = $slot;
     $self->{config}         = $config;
@@ -81,7 +82,7 @@ sub new {
     $self->{jobs_done}      = 0;
     $self->{method_suffix}  = '_m';
 
-    return bless $self, $class;
+    return $self;
 }
 
 =head1 METHODS

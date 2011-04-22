@@ -40,8 +40,8 @@ sub new {
     my $ref = shift;
     my $class = ref $ref || $ref;
 
-    my Gearman::WorkerSpawner::BaseWorker::Client $self =
-        bless Gearman::Client->new(@_), $class;
+    my Gearman::WorkerSpawner::BaseWorker::Client $self = fields::new($class);
+    $self->SUPER::new(@_);
 
     $self->{method_suffix} = '_m';
 
