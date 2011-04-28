@@ -748,10 +748,12 @@ sub _do_work {
 
     $SIG{INT} = sub { $quitting = 1 };
     while (!$quitting) {
-        eval {
-            $worker->work(stop_if => sub {1});
-        };
-        $@ && warn "$worker_class [$$] failed: $@";
+        {
+            eval {
+                $worker->work(stop_if => sub {1});
+            };
+            $@ && warn "$worker_class [$$] failed: $@";
+        }
 
         $worker->post_work if $worker->can('post_work');
 
