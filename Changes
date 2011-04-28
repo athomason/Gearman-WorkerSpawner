@@ -1,4 +1,6 @@
 Revision history for Perl extension Gearman::WorkerSpawner
+2.15  Wed Apr 27 17:11:54 PDT 2011
+        - Work around ithreads leak in perl 5.8
 2.14  Wed Feb 23 12:16:11 PST 2011
         - Add ->old() for singleton access
 2.13  Thu Jun  3 16:02:18 PDT 2010
