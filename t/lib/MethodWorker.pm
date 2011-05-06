@@ -6,10 +6,12 @@ use warnings;
 use base 'Gearman::WorkerSpawner::BaseWorker';
 
 sub new {
-    my $class = shift;
-    my MethodWorker $self = bless $class->SUPER::new(@_), $class;
+    my MethodWorker $self = shift;
+    $self = fields::new($self) unless ref $self;
+    $self->SUPER::new(@_);
+
     $self->register_method('constant');
-    $self->register_method('echo');
+    $self->register_method('echo' => \&echo); # test that 2 arg form works
     $self->register_method('echo_ref');
     $self->register_method('add');
     return $self;

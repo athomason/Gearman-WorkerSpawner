@@ -1,9 +1,12 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 # This example illustrates how to include worker code inline with the main
 # script. See comments marked INLINE for necessary tricks to make that work.
 
 ### Worker code ###
+
+# INLINE: since this file will be compiled as a module in the worker, the
+# worker code must go first
 
 package Getter;
 
@@ -16,8 +19,8 @@ use base 'Gearman::WorkerSpawner::BaseWorker';
 use fields 'ua';
 
 sub new {
-    my $class = shift;
-    my Getter $self = bless $class->SUPER::new(@_), $class;
+    my Getter $self = fields::new(shift);
+    $self->SUPER::new(@_);
     $self->{ua} = LWP::UserAgent->new;
     $self->register_method(get_url => \&get_url);
     return $self;
@@ -32,7 +35,7 @@ sub get_url {
 
 package main;
 
-## INLINE: if there's a caller() at top scope than this file was "use"d by
+# INLINE: if there's a caller() at top scope than this file was "use"d by
 # WorkerSpawner to load the above package source, therefore bail now
 return 1 if caller;
 

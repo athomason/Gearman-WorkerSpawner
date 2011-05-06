@@ -3,9 +3,10 @@ package TestWorker;
 use base 'Gearman::Worker';
 
 sub new {
-    my ($class, $slot, $config, $gearmands) = @_;
-    my TestWorker $self = Gearman::Worker->new(job_servers => $gearmands);
-    bless $self, $class;
+    my TestWorker $self = shift;
+    my ($slot, $config, $gearmands) = @_;
+    $self = fields::new($self) unless ref $self;
+    $self->SUPER::new(job_servers => $gearmands);
     $self->register_function(testfunc => \&testfunc);
     return $self;
 }

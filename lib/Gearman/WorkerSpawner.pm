@@ -31,8 +31,9 @@ Danga::Socket environment
     use base 'Gearman::WorkerSpawner::BaseWorker';
 
     sub new {
-        my $class = shift;
-        my $self = bless Gearman::WorkerSpawner::BaseWorker->new(@_), $class;
+        my MethodWorker $self = fields::new(shift);
+        $self->SUPER::new(@_);
+
         $self->register_method(adder => \&add);
         return $self;
     }
@@ -841,11 +842,11 @@ brian d foy's modulino article: L<http://www.ddj.com/dept/debug/184416165>
 
 =head1 AUTHOR
 
-Adam Thomason, E<lt>athomason@sixapart.comE<gt>
+Adam Thomason, E<lt>athomason@cpan.orgE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2007-2010 by Six Apart, E<lt>cpan@sixapart.comE<gt>
+Copyright (C) 2007-2011 by Say Media Inc, E<lt>cpan@sixapart.comE<gt>
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.6 or,

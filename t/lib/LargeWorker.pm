@@ -14,7 +14,9 @@ sub new {
     alarm 1;
     1 until $done;
 
-    return bless Gearman::Worker->new(job_servers => $gearmands), $class;
+    my $self = fields::new($class);
+    $self->SUPER::new(job_servers => $gearmands);
+    return $self;
 }
 
 1;
