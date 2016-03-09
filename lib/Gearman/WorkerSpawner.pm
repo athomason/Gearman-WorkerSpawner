@@ -148,7 +148,7 @@ sub new {
     $gearmand_spec = $params{gearmand};
     gearman_servers(); # init the server singleton if necessary
 
-    croak 'gearmand location not specified' unless defined @{ gearman_servers() };
+    croak 'gearmand location not specified' unless @{ gearman_servers() };
 
     # NB: this structure must be Storable-serializable for all bits used by
     # _supervise. see special handling in add_worker
